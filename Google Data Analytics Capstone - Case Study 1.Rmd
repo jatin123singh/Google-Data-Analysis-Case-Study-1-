@@ -1,0 +1,632 @@
+---
+title: "Bike share navigate speedy success"
+author: "Jatin Singh"
+date: "2025-08-11"
+output:
+  pdf_document: default
+  html_document: default
+editor_options:
+  markdown:
+    wrap: sentence
+---
+
+```{r}
+library(tidyverse)
+library(janitor)
+library(readxl)
+library(writexl)
+library(RSQLite)
+```
+
+## Reading data from CSV file
+
+All the csv file is importing into R Environment
+
+```{r}
+df1 <- read_csv("C:/Users/ABHISHEK SINGH/Desktop/DATA ANALYISIS VIDEO AND PDF/202408-divvy-tripdata.csv")
+df2 <- read_csv("C:/Users/ABHISHEK SINGH/Desktop/DATA ANALYISIS VIDEO AND PDF/202409-divvy-tripdata.csv")
+df3 <- read_csv("C:/Users/ABHISHEK SINGH/Desktop/DATA ANALYISIS VIDEO AND PDF/202410-divvy-tripdata.csv")
+df4 <- read_csv("C:/Users/ABHISHEK SINGH/Desktop/DATA ANALYISIS VIDEO AND PDF/202411-divvy-tripdata.csv")
+df5 <- read_csv("C:/Users/ABHISHEK SINGH/Desktop/DATA ANALYISIS VIDEO AND PDF/202412-divvy-tripdata.csv")
+df6 <- read_csv("C:/Users/ABHISHEK SINGH/Desktop/DATA ANALYISIS VIDEO AND PDF/202501-divvy-tripdata.csv")
+df7 <- read_csv("C:/Users/ABHISHEK SINGH/Desktop/DATA ANALYISIS VIDEO AND PDF/202502-divvy-tripdata.csv")
+df8 <- read_csv("C:/Users/ABHISHEK SINGH/Desktop/DATA ANALYISIS VIDEO AND PDF/202503-divvy-tripdata.csv")
+df9 <- read_csv("C:/Users/ABHISHEK SINGH/Desktop/DATA ANALYISIS VIDEO AND PDF/202504-divvy-tripdata.csv")
+df10 <- read_csv("C:/Users/ABHISHEK SINGH/Desktop/DATA ANALYISIS VIDEO AND PDF/202505-divvy-tripdata.csv")
+df11 <- read_csv("C:/Users/ABHISHEK SINGH/Desktop/DATA ANALYISIS VIDEO AND PDF/202506-divvy-tripdata.csv")
+df12 <- read_csv("C:/Users/ABHISHEK SINGH/Desktop/DATA ANALYISIS VIDEO AND PDF/202507-divvy-tripdata.csv")
+```
+
+## Combining
+
+All the csv files will be combine into one data frame.
+
+```{r}
+bike_rides <- rbind(df1,df2,df3,df4,df5,df6,df7,df8,df9,df10,df11,df12)
+bike_rides <- janitor::remove_empty(bike_rides,which = c("cols"))
+bike_rides <- janitor::remove_empty(bike_rides,which = c("rows"))
+```
+
+```{r}
+head(bike_rides)
+```
+
+## Data cleaning
+
+Removing duplicates
+
+```{r}
+```
+
+```{r}
+```
+
+```{r}
+cyclistic_no_dups <- bike_rides[!duplicated(bike_rides$ride_id), ]
+
+# Calculate how many rows were removed
+removed_rows <- nrow(bike_rides) - nrow(cyclistic_no_dups)
+
+# Print result
+print(paste("Removed", removed_rows, "duplicated rows"))
+
+```
+
+## Parsing datetime columns
+
+In R parsing a date time converting a column that looks like date but is stored as text or another format into proper date or datetime object so R can understand and work with it correctly.
+
+```{r}
+cyclistic_no_dups$started_at <- as.POSIXct(cyclistic_no_dups$started_at, "%Y-%m-%d %H:%M:%S")
+cyclistic_no_dups$ended_at <- as.POSIXct(cyclistic_no_dups$ended_at, "%Y-%m-%d %H:%M:%S")
+```
+
+## Manipulating the data
+
+New columns will help improve calculation time in the future
+
+#ride_time_m Represent the total time of a bike ride,in minutes
+
+```{r}
+cyclistic_no_dups <- cyclistic_no_dups %>%
+  mutate(ride_time_m = as.numeric(cyclistic_no_dups$ended_at - cyclistic_no_dups$started_at) / 60)
+summary(cyclistic_no_dups$ride_time_m)
+```
+
+# year_month
+
+Separate the year and the month into one column
+
+```{r}
+cyclistic_no_dups <- cyclistic_no_dups %>%
+  mutate(year_month = paste(strftime(cyclistic_no_dups$started_at, "%Y"),
+                            "-",
+                            strftime(cyclistic_no_dups$started_at, "%m"),
+                            paste("(",strftime(cyclistic_no_dups$started_at, "%b"), ")", sep = "")))
+
+unique(cyclistic_no_dups$year_month)
+```
+
+# Weekday
+
+The weekday will be useful to determine patterns of travels in the week
+
+```{r}
+cyclistic_no_dups <- cyclistic_no_dups %>%
+  mutate(weekday = paste(strftime(cyclistic_no_dups$ended_at, "%u"), "- ", strftime(cyclistic_no_dups$ended_at, "%a")))
+
+unique(cyclistic_no_dups$weekday)
+```
+
+# start_hour
+
+Getting the hour of the day also may be useful for intro day analysis
+
+```{r}
+cyclistic_no_dups <- cyclistic_no_dups %>%
+  mutate(start_hour = strftime(cyclistic_no_dups$ended_at , "%H"))
+
+unique(cyclistic_no_dups$start_hour)
+```
+
+## Saving the result as a CSV
+
+```{r}
+cyclistic_no_dups %>%
+  write.csv("cyclistic_clean.csv")
+```
+
+### Guiding questions
+
+-   What tools are you choosing?
+
+I'm using R for this project, for two main reason: because of the large data set and to gather experience with the language.
+
+-   Have you ensured your data integrity?
+
+yes,the data is consistent throughout the columns.
+
+-   what steps have you taken to ensure that your data is clean?
+
+First, the duplicated values where removed, then the columns where formatted to their correct format.
+
+-   How can you verify that your data is clean and ready to analyze?
+
+it can be verified by this notebook.
+
+-   Have you documented your cleaning process so you can review and share those results?
+
+yes, it's all documented in this R notebook.
+
+## Key Tasks
+
+-   check the data for errors.
+-   choose your tools.
+-   Transform the data so you can work with it effectively
+-   Document the cleaning process.
+
+## Deliverable
+
+-   Documentation of any cleaning or manipulation of data
+
+## Analyze
+
+The data exploration will consist of building a profile for annual members and how they differ from casual riders.
+
+putting in a new variable with a simpler name will help reduce some typing in the future.
+
+```{r}
+# This function help to resize the plots
+fig <- function(width, heigth){options(repr.plot.width = width, repr.plot.heigth = heigth)}
+```
+
+```{r}
+cyclistic <- cyclistic_no_dups
+head(cyclistic)
+```
+
+# To quick start, let's generate a summary of the dateset
+
+```{r}
+summary(cyclistic)
+```
+
+one thing that immediately catches the attention is ride_time_m.
+This field has negative values, and the biggest value is 1574.900, which is 40 days and 46 jours.
+this field will be explored further in the documents.
+
+## Data Distribution
+
+Here we want to try to answer the most basic questions about how the data is distributed.
+
+## Casuals vs. Members
+
+How much of the data is about members and how much is about casuals?
+
+```{r}
+cyclistic %>%
+  group_by(member_casual) %>%
+  summarise(count = length(ride_id),
+            "%" = (length(ride_id) / nrow(cyclistic)) * 100)
+```
+
+```{r}
+library(ggplot2)
+
+ggplot(data = cyclistic, aes(x = member_casual, fill = member_casual)) +
+  geom_bar() +
+  labs(
+    x = "Casuals vs Members",
+    title = "Chart 01 - Casuals vs Members Distribution",
+    caption = "Data is collected by Google Data Analytics Capstone study"
+  )
+
+```
+
+As we can see on the member x casual table, members have a bigger proportion of the data set, composing \~63%, \~27% bigger than the count of casual riders.
+
+# Month
+
+How much of the data is distributed by month?
+
+```{r}
+cyclistic %>%
+  group_by(year_month) %>%
+  summarise(count = length(ride_id),
+            "%" = (length(ride_id) / nrow(cyclistic)) * 100,
+            'members_p' = (sum(member_casual == "member") / length(ride_id)) * 100,
+            'casual_p' = (sum(member_casual == "casual") / length(ride_id)) * 100,
+            'Memeber X Casual Pre Difer' = members_p - casual_p)
+```
+
+```{r}
+cyclistic %>%
+  ggplot(aes(year_month,fill=member_casual))+
+  geom_bar()+
+  labs(x="Month", title="Chart02 - Distribution  by month")+
+  coord_flip()
+
+```
+
+# Some consideration can be taken by this charts:
+
+-   The month with the biggest count of data points was September
+-   In all months we have more member's rides than casual rides (maybe because of returning members).
+
+The distribution looks cyclical.
+Let's compare it with climate data for Chicago.
+The data will be taken by <https://en.wikipedia.org/wiki/Climate_of_Chicago> (Daily mean °C, 1991-2020).
+
+```{r}
+chicago_mean_temp <- c(-3.2,-1.2, 4.4, 10.5, 16.6, 22.2, 24.8, 23.9, 19.9, 12.9, 5.8, -0.3)
+month <- c("001 - Jan","002 - Feb","003 - Mar","004 - Apr","005 - May","006 - Jun","007 - Jul","008 - Aug","009 - Sep","010 - Oct","011 - Nov","012 - Dec")
+
+data.frame(month, chicago_mean_temp) %>%
+    ggplot(aes(x=month, y=chicago_mean_temp)) +
+    labs(x="Month", y="Mean temperature", title="Chart 02.5 - Mean temperature for Chicago (1991-2020)") +
+    geom_col()
+```
+
+-   Temperature heavily influence the volume of rides in the month.
+
+# weekday
+
+How much of the data is distributed by weekday?
+
+```{r}
+cyclistic %>%
+  group_by(weekday) %>%
+  summarise(count = length(ride_id),
+            '%' = (length(ride_id) / nrow(cyclistic)) * 100,
+            'member_p' = (sum(member_casual == "member") / length(ride_id)) * 100,
+            'casual_p' = (sum(member_casual == "member") / length(ride_id)) * 100,
+            'Member X Casual Perc Difer' = member_p - casual_p)
+```
+
+```{r}
+ggplot(cyclistic, aes(weekday, fill=member_casual))+
+  geom_bar()+
+  labs(x="Weekday", title="Chart03 Distribution by weekday")+
+  coord_flip()
+```
+
+# It's interesting to see
+
+-   The biggest volume of data is on weekend.
+-   Saturday has the biggest data points.
+-   Members may have the biggest volume of data besides on Saturday On the weekday, casual take place as having most data points.
+-   Weekends have the biggest volume of casual, starting on Friday, a \~19% increase.
+
+# Hour of the day
+
+```{r}
+cyclistic %>%
+  group_by(start_hour) %>%
+  summarise(count = length(ride_id),
+            '%' = (length(ride_id) / nrow(cyclistic)) * 100,
+            'member_p' = (sum(member_casual == "member") / length(ride_id)) * 100,
+            'casual_p' = (sum(member_casual == "casual") / length(ride_id)) * 100,
+            'member_casual_Perc_Difer' = member_p - casual_p)
+```
+
+```{r}
+cyclistic %>%
+  ggplot(aes(start_hour, fill=member_casual))+
+  labs(x="Hour of the day", title="Chart04 Distribution by hour of the day")+
+  geom_bar()
+```
+
+From this chart we can see
+
+-   There's bigger volume of bikers in the afternoon.
+-   We have more members during the morning, mainly in between 5am and 11am.
+-   And more casuals between 11pm and 4am.
+
+This chart can be expanded seen it's divided by day of the week.
+
+```{r}
+cyclistic %>%
+  ggplot(aes(start_hour, fill=member_casual))+
+  geom_bar()+
+  labs(x="Hour of the day", title="Chart05 Distribution by hour of the day divided by week")+
+  facet_wrap(~weekday)
+```
+
+There's clear difference between the midweek and weekends.
+Let's generate charts for this two configurations.
+
+```{r}
+cyclistic %>%
+  mutate(
+    type_of_weekday = ifelse(
+      grepl("Sat|Sun", weekday),
+      "weekend",
+      "midweek"
+    ),
+    type_of_weekday = factor(type_of_weekday, levels = c("midweek", "weekend"))
+  ) %>%
+  ggplot(aes(start_hour, fill = member_casual)) +
+  geom_bar() +
+  facet_wrap(~type_of_weekday) +
+  labs(
+    x = "Hour of the day",
+    title = "Chart06 - Distribution by hour of the day: Midweek vs Weekend"
+  )
+
+```
+
+# The two plots differs on some key ways:
+
+-   While the weekends have a smooth flow of data points, the midweek have a more step flow of data.
+-   The count of data points doesn't have much meaning knowing each plot represents a different amount of days.
+-   There's a big increase of data points in the midweek between 1pm to 2pm. Then it fall a bit.
+-   Another big increase is from 10pm to 11pm.
+-   During the weekend we have a bigger flow of casuals between 1pm to 9pm.
+
+It's fundamental to question who are the riders who use the bikes during this time of day.
+We can assume some factors, one is that members may are people who use the bikes during they daily routine activities, like go to work (data points between 10am to 2pm), go back from work (data points between )
+
+# Rideable type
+
+```{r}
+cyclistic %>%
+    group_by(rideable_type) %>%
+  summarise(count = length(ride_id),
+            '%' = (length(ride_id) / nrow(cyclistic)) * 100,
+            'member_p' = (sum(member_casual == "member") / length(ride_id)) * 100,
+            'casual_p' = (sum(member_casual == "casual") / length(ride_id)) * 100,
+            'member_casual_Perc_Difer' = member_p - casual_p)
+  
+```
+
+```{r}
+ggplot(cyclistic, aes(rideable_type, fill=member_casual))+
+  labs(x="Rideable type", title="Chart07 Distribution of types of bikes")+
+  geom_bar()+
+  coord_flip()
+```
+
+It's important to note that
+
+-   electric bikes have the biggest volume of rides, but this can be that the company may have more docked bikes.
+-   Members have a bigger preference for classic bikes
+-   Also for electric bikes
+
+ride_time_m
+
+First get some summarized statistic from the dataset.
+
+```{r}
+summary(cyclistic$ride_time_m)
+```
+
+The min and max may be a problem to plot some charts.
+How the ride time of some bikes is a negative value?
+Maybe there's some malfunction station return bad dates.
+checking the start and end station does't appear to have a problem.
+
+```{r}
+ventiles = quantile(cyclistic$ride_time_m, seq(0, 1, by=0.5))
+ventiles
+```
+
+# We can see that
+
+-   The difference between 0% and 100% is 1630.921883 minutes.
+
+```{r}
+cyclistic_without_outliners <- cyclistic %>%
+  filter(ride_time_m > as.numeric(ventiles['5%'])) %>%
+  filter(ride_time_m < as.numeric(ventiles['95%']))
+
+print(paste("Removed", nrow(cyclistic) - nrow(cyclistic_without_outliners), "rows as outliners"))
+```
+
+ride_time_m multivariable exploration
+
+One of the first interactions between the columns and ride_length is a box plot, with subplots based on the casual_members column.
+Also the summarized data.
+
+# Get a summary of the ride_time_m column to understand its distribution
+
+```{r}
+summary(cyclistic$ride_time_m)
+```
+
+```{r}
+# Check data exists
+nrow(cyclistic_without_outliners)
+
+# Preview first rows
+head(cyclistic_without_outliners)
+
+# Check distinct member_casual values
+table(cyclistic_without_outliners$member_casual)
+
+# Check ride_time_m range
+summary(cyclistic_without_outliners$ride_time_m)
+
+```
+
+```{r}
+ventiles <- quantile(cyclistic$ride_time_m, probs = seq(0, 1, 0.05), na.rm = TRUE)
+
+cyclistic_without_outliners <- cyclistic %>%
+  filter(ride_time_m > as.numeric(ventiles['5%']),
+         ride_time_m < as.numeric(ventiles['95%']))
+
+print(paste("Removed", nrow(cyclistic) - nrow(cyclistic_without_outliners), "rows as outliers"))
+
+```
+
+```{r}
+print(ventiles['5%'])
+print(ventiles['95%'])
+
+```
+
+```{r}
+summary(cyclistic$ride_time_m)
+
+table(cut(cyclistic$ride_time_m, breaks = c(0, 2.19, 40.23, Inf)))
+
+ventiles <- quantile(cyclistic$ride_time_m, probs = c(0.01, 0.99), na.rm = TRUE)
+
+cyclistic_without_outliners <- cyclistic %>%
+  filter(ride_time_m > ventiles[1],
+         ride_time_m < ventiles[2])
+
+```
+
+```{r}
+cyclistic_without_outliners %>%
+  group_by(member_casual) %>%
+  summarise(
+    mean = mean(ride_time_m, na.rm = TRUE),
+    first_quarter = quantile(ride_time_m, 0.25, na.rm = TRUE),
+    median = median(ride_time_m, na.rm = TRUE),
+    third_quarter = quantile(ride_time_m, 0.75, na.rm = TRUE),
+    IQR = third_quarter - first_quarter
+  )
+```
+
+```{r}
+library(ggplot2)
+
+ggplot(cyclistic_without_outliners, aes(x = member_casual, y = ride_time_m, fill = member_casual)) +
+  geom_boxplot(outlier.colour = "red", outlier.size = 2) +
+  labs(
+    title = "Chart 08 - Distribution of Riding time From Casual x Member",
+    x = "Member x casual",
+    y = "Ride Time"
+  ) 
+
+```
+
+It's important to note that
+
+-   Casual have more riding time than members.
+-   Mean and IQR is also bigger for casual.
+
+```{r}
+ggplot(cyclistic_without_outliners,aes(x=weekday, y=ride_time_m, fill=member_casual))+
+  geom_boxplot()+
+  facet_wrap(~member_casual)+
+  labs(x="Weekday", y="Riding time", title="Chart09 Distribution of Riding Time For day of the week")+
+  coord_flip()
+```
+
+-   Riding time for members keep unchanged during the midweek increasing during weekends.
+
+-   Casuals follow a more curve distribution, peaking on Sundays and Vallaying on Tuesday/Thursday
+
+```{r}
+ggplot(cyclistic_without_outliners, aes(x=rideable_type, y=ride_time_m, fill=member_casual))+
+  geom_boxplot()+
+  facet_wrap(~member_casual)+
+  labs(x="Rideable Type", y="Riding Time", title="Chart 10 - Distribution of Riding time for rideable type")+
+  coord_flip()
+```
+
+-   Electric bikes have less riding time than other bikes, for casuals.
+
+-   Classic bikes have more riding time and for electric scooter casuals have more riding than members.
+
+## Guiding questions
+
+-   How should you organize your data to perform analysis on it?
+    The data has been organized into a multiple CSV concatenating all the files from the data set.
+
+-   Has your data been properly formatted?
+    yes, all the columns have their correct data type.
+
+-   What surprises did you discover in the data?
+    One of the main surprises is how members different from casuals when analyzed from weekdays.
+    Also that members have less riding time than casuals.
+
+-   What trends or relationships did you find in the data?
+
+    -   There are more members than casuals in the dataset.
+    -   There are more of a difference between the flow of members/casuals from midweek to weekends.
+    -   members use bikes on schedules that differs from casuals
+    -   members have less riding time.
+    -   members tend to prefer classic bikes.
+
+-   How will these insights help answer your business questions?
+    This insights helps to build a profile for members.
+
+## Key tasks
+
+-   Aggregate your data so it's useful and accessible.
+-   Organize and format your data.
+-   Perform calculations.
+-   Identify trends and relationships.
+
+## Deliverable
+
+-   A summary of your analysis
+
+## Share
+
+What we know about the data set
+
+-   Members have the biggest proportion of the data set \~27% bigger than casuals.
+
+-   In all months we have more members rides than casuals rides.
+
+-   Temperature heavily influences the volume of rides in the month.
+
+-   The month with the biggest count of data points was September of the data set.
+
+Now for how members different from casuals.
+
+-   Members may have the biggest volume of data, besides on Saturday.
+    on this weekday, casuals take place as having the most data points.
+
+-   Weekends have the biggest volume of casual, starting on Friday, a \~19% increase
+
+-   There's a big increase of data points in the midweek between 1pm to 2pm.
+    Then it fall a bit.
+
+-   Another big increase is from 10pm to 11pm.
+
+-   During the weekend we have a bigger flow of casuals between 1pm to 9pm.
+
+-   Classic bikes have more riding time and for electric scooter casuals have more riding than members.
+
+what we can take from this information is that members have a more fixed use for bikes besides casuals.
+Their uses is for more routine activities like
+
+-   Go to work.
+-   use it as an exercise.
+
+Members also have a bigger preference for classic bikes, so they can exercise when going to work.
+
+Concluding:
+
+Members use the bikes for fixed activities, one of those is going to work.
+Bikes are used for recreation on the weekends.
+Rides are influenced by temperature.
+
+## Key tasks
+
+-   Determine the best way to share your findings.
+-   Create effective data visualizations.
+-   Present your findings.
+-   Ensure your work is accessible.
+
+## Deliverable
+
+The act phase would be done by the marketing team of the company.
+The main takeaway will be the top three recommendation for the marketing.
+
+1 Build a marketing campaign focusing on show how bikes help people to get to ,while maintaining the planet green and avoid traffic.
+The ads could be show on professional social networks.
+2 Increase benefits for riding during cold months.
+Coupons and discounts could be handed out.
+3 As the bikes are also used for recreations on the weekends, ads campaigns could also be made showing people using the bikes for exercise during the weeks.
+The ads could focus on how practical and consistent the bikes can be.
+
+## Conclusion
+
+The Google Analytics Professional Certificate teach a lot and the R language is really helpful for analyzing data.
